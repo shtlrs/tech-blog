@@ -1,0 +1,32 @@
+.collapsible-code {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 1em 0;
+}
+
+.collapsible-code summary {
+    cursor: pointer;
+    padding: 0.5em 1em;
+    background: #f5f5f5;
+    border-radius: 4px 4px 0 0;
+    font-weight: 500;
+    user-select: none;
+}
+
+.collapsible-code summary:hover {
+    background: #e8e8e8;
+}
+
+.collapsible-code[open] summary {
+    border-bottom: 1px solid #ddd;
+    border-radius: 4px 4px 0 0;
+}
+
+.collapsible-code .highlight {
+    margin: 0;
+}
+
+.collapsible-code .highlight pre {
+    margin: 0;
+    border-radius: 0 0 4px 4px;
+}

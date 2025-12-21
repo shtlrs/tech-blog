@@ -1,4 +1,9 @@
 baseURL = 'https://example.org/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
-theme = "archie"
+title = 'Amrou Bellalouna'
+theme = "hugotex"
+#ignoreLogs = ['warning-goldmark-raw-html']
+
+[params]
+customCSS = ["css/styles.css"]
+lightmode = true

@@ -7,3 +7,8 @@ theme = "hugotex"
 [params]
 customCSS = ["css/styles.css"]
 lightmode = true
+
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'

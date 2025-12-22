@@ -78,26 +78,28 @@ Here's the core logic (simplified for clarity):
 import pika
 from kombu.transport import native_delayed_delivery as kombu_utils
 
-def get_routing_details(message, queue_name):
-    target_exchange_name = message.exchange or queue_name
-    target_routing_key = message.routing_key or queue_name
+def get_routing_details(method, properties, queue_name):
+    target_exchange_name = method.exchange or queue_name
+    target_routing_key = method.routing_key or queue_name
 
-    eta_str = str(message.headers.pop("eta", ""))
-    countdown = compute_countdown(eta_str)
+    eta_str = str(properties.headers.pop("eta", ""))
+    countdown_in_seconds = compute_countdown(eta_str)
 
-    if countdown and countdown > 0:
-        target_routing_key = kombu_utils.calculate_routing_key(int(countdown), target_routing_key)
+    if countdown_in_seconds and countdown_in_seconds > 0:
+        target_routing_key = kombu_utils.calculate_routing_key(int(countdown_in_seconds), target_routing_key)
         target_exchange_name = "celery_delayed_27"
 
     return target_routing_key, target_exchange_name
 
 source_conn = pika.BlockingConnection(pika.URLParameters("amqps://user:pwd@host:port/chost"))
+source_channel = source_conn.channel()
 dest_conn = pika.BlockingConnection(pika.URLParameters("amqps://user:pwd@host:port/qhost"))
+dest_channel = dest_conn.channel()
 
-for method, properties, body in source_conn.channel().consume("target_queue"):
+for method, properties, body in source_channel.consume("target_queue"):
     try:
-        routing_key, exchange = get_routing_details(method, "target_queue")
-        dest_conn.channel().basic_publish(exchange=exchange, routing_key=routing_key,
+        routing_key, exchange = get_routing_details(method, properties, "target_queue")
+        dest_channel.basic_publish(exchange=exchange, routing_key=routing_key,
                                           body=body, properties=properties)
         source_conn.channel().basic_ack(delivery_tag=method.delivery_tag)
     except Exception:

@@ -13,5 +13,7 @@ at [Python Discord](https://pythondiscord.com), the biggest Python community on 
 so don't hesitate to [join us on Discord](https://discord.com/invite/python).
 
 
+I will be trying to write some of the lessons I learned, projects I worked on, or even my thoughts when I do have some
+in this blog.
 
 

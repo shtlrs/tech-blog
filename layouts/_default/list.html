@@ -4,7 +4,7 @@
     {{ .Content }}
     <h2>Recent Posts</h2>
     <div class="posts-list">
-        {{ range first 5 site.RegularPages }}
+        {{ range (first 5 site.RegularPages).Reverse }}
         {{ partial "preview.html" . }}
         {{ end }}
     </div>

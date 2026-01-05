@@ -8,6 +8,16 @@ theme = "hugotex"
 customCSS = ["css/styles.css"]
 lightmode = true
 
+[[menus.main]]
+name = "Blog"
+pageRef = "/posts"
+weight = 10
+
+[[menus.main]]
+name = "About"
+pageRef = "/about"
+weight = 20
+
 
 [caches]
   [caches.images]

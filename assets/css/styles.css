@@ -7,33 +7,36 @@
 
 .navbar .nav {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
 }
 
-.navbar .site-title {
-    font-size: 1.2rem;
-    text-decoration: none;
-    color: inherit;
-}
-
 .navbar .nav-links {
     display: flex;
-    list-style: none;
+    list-style: none !important;
     margin: 0;
     padding: 0;
-    gap: 2rem;
+    gap: 1rem;
+    align-items: center;
 }
 
 .navbar .nav-links li {
-    display: inline;
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .navbar .nav-links li:before {
-    content: none;
+    content: none !important;
+}
+
+.navbar .nav-links li.separator {
+    color: #999;
+    user-select: none;
+    font-weight: normal;
 }
 
 .navbar .nav-links a {
@@ -41,6 +44,8 @@
     color: inherit;
     font-weight: 500;
     transition: opacity 0.2s;
+    padding: 0.25rem 0.5rem;
+    display: inline-block;
 }
 
 .navbar .nav-links a:hover {

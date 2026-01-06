@@ -1,5 +1,5 @@
 +++
-date = '2025-01-03T17:25:56+01:00'
+date = '2026-01-03T17:25:56+01:00'
 draft = false
 title = 'Testing Ansible Playbooks Locally'
 description = 'Set up a local testing environment for Ansible playbooks using Vagrant and VirtualBox. Learn how to safely test infrastructure changes before deploying to production with a step-by-step guide.'

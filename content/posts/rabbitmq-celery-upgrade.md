@@ -2,6 +2,9 @@
 date = '2025-12-21T13:25:56+01:00'
 draft = false
 title = 'Upgrading RabbitMQ To v4.x Without Breaking Celery ETA Tasks'
+description = 'Learn how to upgrade RabbitMQ from v3 to v4 without breaking Celery ETA tasks. A step-by-step migration strategy for handling 8M messages/day with zero downtime while switching from classic to quorum queues.'
+tags = ['RabbitMQ', 'Celery', 'Python', 'DevOps', 'Message Queues']
+categories = ['Backend', 'Infrastructure']
 +++
 
 Upgrading to RabbitMQ v4 threatened to break our entire usage of Celery, more specifically tasks with ETAs.

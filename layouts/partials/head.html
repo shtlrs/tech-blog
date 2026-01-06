@@ -5,20 +5,70 @@
 {{ else }}
   <title>{{ .Site.Title }}</title>
 {{ end }}
-{{ with .Site.Params.description }}
-  <meta name="description" content="{{ . }}" />
+
+<!-- Meta Description -->
+{{ if .Description }}
+  <meta name="description" content="{{ .Description }}" />
+{{ else if .Summary }}
+  <meta name="description" content="{{ .Summary }}" />
+{{ else if .Site.Params.description }}
+  <meta name="description" content="{{ .Site.Params.description }}" />
 {{ end }}
+
+<!-- Author -->
 {{- with .Site.Params.Author.Name }}
   <meta name="author" content="{{ . }}"/>
 {{- end }}
+
+<!-- Canonical URL -->
+<link rel="canonical" href="{{ .Permalink }}" />
+
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- Open Graph -->
 {{ if site.Params.opengraph }}
 {{ template "_internal/opengraph.html" . }}
 {{- end }}
+
+<!-- Twitter Cards -->
+{{ if site.Params.opengraph }}
+{{ template "_internal/twitter_cards.html" . }}
+{{- end }}
+
+<!-- Structured Data (JSON-LD) -->
+{{ if .IsPage }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ .Title }},
+  "description": {{ if .Description }}{{ .Description }}{{ else }}{{ .Summary }}{{ end }},
+  "author": {
+    "@type": "Person",
+    "name": {{ .Site.Params.Author.Name }}
+  },
+  "datePublished": {{ .Date.Format "2006-01-02T15:04:05Z07:00" }},
+  "dateModified": {{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }},
+  "url": {{ .Permalink }},
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": {{ .Permalink }}
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": {{ .Site.Title }}
+  }
+}
+</script>
+{{ end }}
+
+<!-- RSS/Atom Feeds -->
 {{ range .AlternativeOutputFormats -}}
     {{ printf `<link rel="%s" type="%s" href="%s" title="%s" />` .Rel .MediaType.Type .Permalink $.Site.Title | safeHTML }}
 {{ end -}}
+
+<!-- Stylesheets -->
 <link rel="stylesheet" href="{{ .Site.BaseURL }}css/latex.css" />
 <link rel="stylesheet" href="{{ .Site.BaseURL }}css/main.css" />
 {{ range .Site.Params.customCSS }}
@@ -27,6 +77,8 @@
     <link rel="stylesheet" href="{{ $styles.RelPermalink }}" />
   {{ end }}
 {{ end }}
+
+<!-- MathJax -->
 {{ if or .Params.math .Site.Params.math }}
 <script id="MathJax-script" async src="{{ .Site.BaseURL }}js/tex-mml-chtml.js"></script>
 <script>
@@ -38,5 +90,7 @@
   };
 </script>
 {{ end }}
+
+<!-- Google Analytics -->
 {{- template "_internal/google_analytics.html" . -}}
 </head>

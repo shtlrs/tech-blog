@@ -2,10 +2,19 @@ baseURL = 'https://shtlrs.com/'
 languageCode = 'en-us'
 title = 'Amrou Bellalouna'
 theme = "hugotex"
+enableRobotsTXT = true
 
 [params]
 customCSS = ["css/styles.css"]
 lightmode = true
+opengraph = true
+description = "Software Engineering blog by Amrou Bellalouna. Insights on solving day to day engineering problems."
+
+[params.Author]
+Name = "Amrou Bellalouna"
+
+[social]
+github = "shtlrs"
 
 [[menus.main]]
 name = "Blog"

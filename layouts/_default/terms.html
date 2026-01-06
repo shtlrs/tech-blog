@@ -1,0 +1,57 @@
+{{ define "main" }}
+
+<div class="container" role="main">
+  <div style="margin-bottom: 2rem;">
+    <p style="opacity: 0.6; font-size: 0.9rem;">{{ len .Data.Terms }} tags</p>
+  </div>
+
+  <div class="tags-list">
+    {{ $sortedTerms := slice }}
+    {{ range $name, $taxonomy := .Data.Terms }}
+      {{ $latestPost := index $taxonomy.Pages.Reverse 0 }}
+      {{ $sortedTerms = $sortedTerms | append (dict "Term" $taxonomy "LatestDate" $latestPost.Date) }}
+    {{ end }}
+
+    {{ range sort $sortedTerms "LatestDate" "desc" }}
+      {{ $tag := .Term }}
+      {{ $latestPost := index $tag.Pages.Reverse 0 }}
+
+      <article class="post-preview" style="
+        padding: 1rem;
+        margin: 0 -1rem;
+        border-bottom: 1px solid #e5e5e5;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+      " onmouseover="
+        this.style.background='#c33';
+        this.style.borderColor='#333';
+        this.style.transform='translateX(8px)';
+        this.querySelector('.post-title').style.color='#fff';
+        this.querySelector('.meta-post').style.color='#fff';
+        this.querySelector('.meta-post').style.opacity='0.9';
+      " onmouseout="
+        this.style.background='transparent';
+        this.style.borderColor='transparent';
+        this.style.transform='translateX(0)';
+        this.querySelector('.post-title').style.color='';
+        this.querySelector('.meta-post').style.color='';
+        this.querySelector('.meta-post').style.opacity='0.7';
+      ">
+        <a href="{{ $tag.Page.Permalink }}" style="text-decoration: none; display: block;">
+          <h2 class="post-title" style="margin: 0 0 0.3rem 0; font-size: 1.5rem; transition: color 0.2s ease;">{{ $tag.Page.Title }}</h2>
+        </a>
+        <div class="postmeta" style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="meta-post" style="font-size: 0.9rem; opacity: 0.7; transition: all 0.2s ease;">
+            {{ if eq $tag.Count 1 }}1 post{{ else }}{{ $tag.Count }} posts{{ end }}
+            {{ if $latestPost }}
+             · Last used {{ $latestPost.Date.Format "Jan 2006" }}
+            {{ end }}
+          </span>
+        </div>
+      </article>
+    {{ end }}
+  </div>
+</div>
+
+{{ end }}

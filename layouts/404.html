@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode }}">
+    {{- partial "head.html" . -}}
+    {{- if site.Params.darkmode -}}
+    <body class="latex-dark">
+    {{- else if site.Params.lightmode -}}
+    <body>
+    {{- else -}}
+    <body class="latex-dark-auto">
+    {{- end -}}
+        <header>
+          {{ partial "nav.html" . }}
+        </header>
+        <div id="content">
+          <div class="container" role="main">
+            <div style="text-align: center; padding: 3rem 0;">
+              <h1 style="font-size: 6rem; margin: 0; opacity: 0.8;">404</h1>
+              <p style="font-size: 1.2rem; margin: 1.5rem 0; opacity: 0.8;">
+                is the number of times people came knocking on the wrong path on my blog.
+              </p>
+
+              <div style="margin: 2rem 0;">
+                <p>If you're lost, try these pages:</p>
+                <ul style="list-style: none; padding: 0; margin: 1rem 0;">
+                  <li style="margin: 0.5rem 0;">
+                    <a href="{{ .Site.BaseURL }}" style="font-size: 1.1rem;">← Home</a>
+                  </li>
+                  <li style="margin: 0.5rem 0;">
+                    <a href="{{ .Site.BaseURL }}posts/" style="font-size: 1.1rem;">All Posts</a>
+                  </li>
+                  {{ range .Site.Menus.main }}
+                  <li style="margin: 0.5rem 0;">
+                    <a href="{{ .URL }}" style="font-size: 1.1rem;">{{ .Name }}</a>
+                  </li>
+                  {{ end }}
+                </ul>
+              </div>
+
+              <div style="margin-top: 3rem; padding: 1.5rem; background: #f8f8f8; border-radius: 4px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <p style="margin: 0; opacity: 0.7;">
+                  If you think this is a mistake, please check the URL or navigate using the links above.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {{- partial "footer.html" . -}}
+    </body>
+</html>

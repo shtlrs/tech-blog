@@ -1,5 +1,5 @@
 <nav class="navbar" style="border-bottom: 1px solid #e0e0e0; padding: 1rem 0; margin-bottom: 2rem; text-align: center;">
-  <div class="nav" style="display: flex; justify-content: center; align-items: center;">
+  <div class="nav" style="display: flex; justify-content: center; align-items: center; position: relative;">
     <a href="{{ .Site.BaseURL }}" {{ if .IsHome }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">Home</a>
     <span style="color: #999; padding: 0 0.5rem;">|</span>
     {{ if .Site.Menus.main }}
@@ -10,5 +10,10 @@
       <a href="{{ .URL }}" {{ if or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">{{ .Name }}</a>
     {{ end }}
     {{ end }}
+
+    <button id="theme-toggle" aria-label="Toggle dark mode" style="position: absolute; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem 0.5rem; transition: opacity 0.2s;">
+      <span id="theme-toggle-light-icon" style="display: none;">☀️</span>
+      <span id="theme-toggle-dark-icon" style="display: none;">🌙</span>
+    </button>
   </div>
 </nav>

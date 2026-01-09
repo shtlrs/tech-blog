@@ -14,7 +14,13 @@ At 8M messages/day with zero downtime tolerance, we needed a migration strategy 
 <!--more-->
 
 ## Prerequisites
-This post assumes familiarity with Celery task queues, RabbitMQ message brokers, and concepts like ETA/countdown tasks, global QoS, virtual hosts, and queue types. If you're comfortable with distributed task processing in Python, you're good to go.
+This post assumes familiarity with:
+- [Celery task queues](https://docs.celeryq.dev/en/stable/getting-started/introduction.html) (workers, tasks, brokers)
+- [RabbitMQ fundamentals](https://www.rabbitmq.com/tutorials/tutorial-one-python.html) (exchanges, queues, routing)
+- [Message queue concepts](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html) (producers, consumers, brokers)
+- [Virtual hosts](https://www.cloudamqp.com/blog/what-is-a-rabbitmq-vhost.html) (multi-tenancy in RabbitMQ)
+
+If you're comfortable with distributed task processing in Python, you're good to go.
 
 ## Context
 
@@ -27,7 +33,7 @@ At [Kraken](https://kraken.tech), we use [Celery](https://docs.celeryq.dev/) to 
 
 **Can't switch queue types on the fly**: RabbitMQ doesn't let you change a queue's type after it's created. Normally you'd just delete the queue and recreate it with the new type, but that wasn't an option for us. We're pushing 8M messages/day across [many environments](https://engineering.kraken.tech/news/2025/02/07/how-we-ship.html), and our SLAs don't allow for any downtime.
 
-**Workers would block indefinitely**: Without global QoS, any task with an ETA would block a worker until that ETA arrived, completely defeating the purpose of async processing. Fortunately, Celery has a feature called [Native Delayed Delivery](https://docs.celeryq.dev/en/v5.5.3/getting-started/backends-and-brokers/rabbitmq.html#native-delayed-delivery) that solves this—but it requires quorum queues bound to topic exchanges. Lucky for us, that's exactly what we needed to migrate to anyway.
+**Workers would block indefinitely**: Without [global QoS](https://www.rabbitmq.com/docs/consumer-prefetch), any task with an ETA would block a worker until that ETA arrived, completely defeating the purpose of async processing. Fortunately, Celery has a feature called [Native Delayed Delivery](https://docs.celeryq.dev/en/v5.5.3/getting-started/backends-and-brokers/rabbitmq.html#native-delayed-delivery) that solves this—but it requires [quorum queues](https://www.rabbitmq.com/docs/quorum-queues) bound to [topic exchanges](https://www.rabbitmq.com/tutorials/tutorial-five-python.html). Lucky for us, that's exactly what we needed to migrate to anyway.
 
 ## Solution
 
@@ -45,7 +51,7 @@ The first step was straightforward: create a new virtual host (`qhost`) to run a
 
 ### Phase 2: Feature-Flagged Queue Configuration
 
-Next, we needed to make our application code flexible enough to handle both the old and new queue configurations. We introduced a `USE_QUORUM_QUEUES` environment variable to control which type of queues to create:
+Next, we needed to make our application code flexible enough to handle both the old and new queue configurations. We introduced a `USE_QUORUM_QUEUES` [environment variable](https://12factor.net/config) (a common [feature flag](https://martinfowler.com/articles/feature-toggles.html) pattern) to control which type of queues to create:
 
 ```python
 from kombu import Queue, Exchange
@@ -64,20 +70,20 @@ def build_queue(queue_name: str) -> Queue:
 task_queues = [build_queue("first_queue"), ..., build_queue("last_queue")]
 ```
 
-When we deployed this change, Kubernetes did its usual rolling update—pods gradually switched from `chost` to `qhost`. This meant we temporarily had some pods on the old vhost and some on the new one, which was totally fine. Any stragglers would get caught in Phase 3.
+When we deployed this change, Kubernetes did its usual [rolling update](https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/), and pods gradually switched from `chost` to `qhost`. This meant we temporarily had some pods on the old vhost and some on the new one, which was totally fine. Any stragglers would get caught in Phase 3.
 
 ### Phase 3: Message Transfer with ETA Transformation
 
 Here's where things got interesting. We needed to transfer potentially millions of messages from `chost` to `qhost` without losing any data or causing downtime.
 
-At first glance, this sounds like a perfect job for RabbitMQ's [shovel](https://www.rabbitmq.com/docs/shovel) plugin, right? Just copy messages from one vhost to another. Unfortunately, a shovel copies messages as-is, including the `eta` header. That's exactly what we're trying to avoid—those headers would cause workers to block, bringing us right back to square one.
+At first glance, this sounds like a perfect job for RabbitMQ's [Shovel plugin](https://www.rabbitmq.com/docs/shovel), right? Just copy messages from one vhost to another. Unfortunately, a shovel copies messages as-is, including the `eta` header. That's exactly what we're trying to avoid—those headers would cause workers to block, bringing us right back to square one.
 
 Instead, we had to transform messages during transfer. The idea was to replicate what [Celery does internally](https://github.com/celery/celery/blob/0527296acb1f1790788301d4395ba6d5ce2a9704/celery/app/base.py#L854-L876) when Native Delayed Delivery is enabled: extract the ETA header, calculate the appropriate delay-based routing key, and route to the right exchange. If you want to understand how this works under the hood, [this guide](https://docs.particular.net/transports/rabbitmq/delayed-delivery) explains the mechanics well.
 
 Here's the core logic (simplified for clarity):
 
 {{< code python >}}
-import pika
+import pika  # RabbitMQ Python client: https://pika.readthedocs.io/
 from kombu.transport import native_delayed_delivery as kombu_utils
 
 def get_routing_details(method, properties, queue_name):
@@ -111,7 +117,7 @@ for method, properties, body in source_channel.consume("target_queue"):
 
 
 #### Some notes on the shoveling part:
-* The above is pseudocode to illustrate the concept. Our production version uses `aio_pika` for async I/O (to avoid blocking), multiprocessing to handle high throughput, message backups for disaster recovery, and extensive logging to track everything.
+* The above is pseudocode to illustrate the concept. Our production version uses [`aio_pika`](https://aio-pika.readthedocs.io/) for [async I/O](https://docs.python.org/3/library/asyncio.html) (to avoid blocking), [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) to handle high throughput, message backups for disaster recovery, and extensive logging to track everything.
 * The script was deployed to run as a daemon, and would only work if `USE_QUORUM_QUEUES` was set to `True`.
 * More mechanics were in place to determine if there were any messages to transfer in the first place, do transfers in batches, etc.
 

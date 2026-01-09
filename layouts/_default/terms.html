@@ -8,13 +8,13 @@
   <div class="tags-list">
     {{ $sortedTerms := slice }}
     {{ range $name, $taxonomy := .Data.Terms }}
-      {{ $latestPost := index $taxonomy.Pages.Reverse 0 }}
+      {{ $latestPost := index $taxonomy.Pages.ByDate.Reverse 0 }}
       {{ $sortedTerms = $sortedTerms | append (dict "Term" $taxonomy "LatestDate" $latestPost.Date) }}
     {{ end }}
 
     {{ range sort $sortedTerms "LatestDate" "desc" }}
       {{ $tag := .Term }}
-      {{ $latestPost := index $tag.Pages.Reverse 0 }}
+      {{ $latestPost := index $tag.Pages.ByDate.Reverse 0 }}
 
       <article class="post-preview" style="
         padding: 1rem;

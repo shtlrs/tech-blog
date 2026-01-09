@@ -4,7 +4,7 @@
     {{ .Content }}
     <h2>Recent Posts</h2>
     <div class="posts-list">
-        {{ range first 5 (where site.RegularPages "Section" "posts").Reverse }}
+        {{ range first 5 (where site.RegularPages "Section" "posts").ByDate.Reverse }}
         {{ partial "preview.html" . }}
         {{ end }}
     </div>
@@ -12,7 +12,7 @@
     {{ else }}
     <!-- Regular list page -->
     <div class="posts-list">
-        {{ range .Pages.Reverse }}
+        {{ range .Pages.ByDate.Reverse }}
         {{ partial "preview.html" . }}
         {{ end }}
     </div>

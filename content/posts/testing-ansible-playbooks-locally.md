@@ -20,10 +20,11 @@ unintentionally performing an undesired/destructive action or whatever.
 
 ## Disclaimer
 
-It's quite important that you know the basics of how `Ansible` and `Vagrant` work in order to follow along easily
-in the rest of the tutorial.
+This post assumes familiarity with:
+- [Ansible fundamentals](https://docs.ansible.com/ansible/latest/getting_started/index.html) (playbooks, roles, inventory)
+- [Vagrant basics](https://developer.hashicorp.com/vagrant/tutorials/getting-started) (managing VMs via Vagrantfiles)
 
-I won't be talking much about it, but I'll try to explain as briefly as I can in some sections.
+I'll explain concepts briefly as they come up, but having baseline knowledge will help you follow along more easily.
 
 ## Prerequisites
 
@@ -88,7 +89,7 @@ end
 ```
 
 ### Configuring the control node/VM
-The playbook/roles, etc. need to run from what `Ansible` calls the `control` node.
+The playbook/roles, etc. need to run from what Ansible calls the [control node](https://docs.ansible.com/ansible/latest/getting_started/basic_concepts.html#control-node).
 
 
 The following is the `Vagrant` configuration to create that node.
@@ -148,7 +149,7 @@ since it requires fetching `hopper`'s host key, and adding `control`'ls public k
 
 
 ### Managed node's configuration
-The actual machines being configured by `Ansible` are called the `managed` nodes.
+The actual machines being configured by Ansible are called the [managed nodes](https://docs.ansible.com/ansible/latest/getting_started/basic_concepts.html#managed-nodes).
 
 In our case, we will be configuring one VM only to keep things simple.
 

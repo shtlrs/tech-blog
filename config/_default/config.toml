@@ -14,9 +14,14 @@ description = "Software Engineering blog by Amrou Bellalouna. Insights on solvin
 github = "shtlrs"
 
 [[menus.main]]
-name = "Blog"
-pageRef = "/posts"
+name = "Tech"
+pageRef = "/posts/tech"
 weight = 10
+
+[[menus.main]]
+name = "Career journey"
+pageRef = "/posts/career"
+weight = 15
 
 [[menus.main]]
 name = "About"

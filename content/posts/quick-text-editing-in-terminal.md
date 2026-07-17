@@ -1,11 +1,13 @@
 +++
-date = '2026-07-17T17:25:56+01:00'
+date = '2026-07-17T12:25:56+01:00'
 draft = false
 title = 'Writing easily accessible text from your terminal'
 description = 'A 5-line shell function that replaced my Sublime Text detour and scratched the itch of doing less with more.'
 tags = ['Terminal', 'Editing', 'Vim', 'Text']
 categories = ['Terminal']
 +++
+
+A shell function I wrote to stop reaching for Sublime Text every time I need to write a Slack message.
 
 <!--more-->
 

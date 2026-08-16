@@ -123,3 +123,10 @@ There's still a long way to go, because the overall weight I'm trying to lose is
 This was a fun project that I don't regret at all, even though I hardly spent 2 hours in total on it, mostly giving feedback to the agent about what's not working.
 
 Whether this is worth it for others to do is a completely subjective topic, as things that don't work for me can work pretty well for others, and vice versa.
+
+And finally, for the curious, here's what the application looks like.
+
+<details>
+<summary>Full application preview</summary>
+
+![App](app-screenshot.png).

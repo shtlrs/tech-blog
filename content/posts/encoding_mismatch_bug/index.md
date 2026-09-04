@@ -7,28 +7,27 @@ categories = ['Backend', 'Infrastructure']
 +++
 
 During our [RabbitMQ v4.x migration preparation]({{< relref "rabbitmq-celery-upgrade" >}}), we started seeing exceptions
-we couldn't make sense of, which lead to a disruption of our services.
+we couldn't make sense of — the kind that knock your services over with no obvious reason why.
 <!--more-->
 
 One of the steps I mentioned in our [RabbitMQ v4.x migration]({{< relref "rabbitmq-celery-upgrade" >}}) was to
 [transfer messages between queues in different vhosts]({{< relref "rabbitmq-celery-upgrade#phase-3-message-transfer-with-eta-transformation" >}}), and
-that meant that we had to read from `queue1` in `vhost1` and "copy" that message to `queue2` in `vhost2`.
+that meant reading from `queue1` in `vhost1` and copying those messages to `queue2` in `vhost2`.
 
-We did this progressively for each environment, and it went smoothly for the first N ones until one day, we started seeing
-the following exception in Sentry:
+We rolled this out environment by environment, and it went smoothly for the first few — until one day Sentry lit up with:
+
 ```text
 TypeError: unsupported operand type(s) for +: 'float' and 'str'
 ```
 
-Upon inspecting the details in Sentry, the line throwing that error was in one of the core libraries of Celery: `Billiard`, and
-exactly in this line where it was trying to execute the following [line](https://github.com/celery/billiard/blob/bd2f803b78f9f2a7fce62ed6d846333270f29e07/billiard/pool.py#L731):
+Digging into the stack trace, the crash was happening deep inside `Billiard`, one of Celery's core libraries, at [this line](https://github.com/celery/billiard/blob/bd2f803b78f9f2a7fce62ed6d846333270f29e07/billiard/pool.py#L731):
 
 ```python
 if monotonic() >= start + timeout:
     ...
 ```
 
-The `Sentry` stack trace was showing us that `start` was a valid float, but timeout however had a value of `,`: a mystery we couldn't make sense of in the beginning.
+`start` was a perfectly valid float. `timeout`, on the other hand, was `,`. Just a comma at which we kept on staring at that for a while.
 
 <details>
 <summary>Sentry Snippet</summary>
@@ -37,50 +36,37 @@ The `Sentry` stack trace was showing us that `start` was a valid float, but time
 
 </details>
 
-So this raised the question: What was happening, and why ?
+Where did a comma come from? The answer is buried in how RabbitMQ encodes values on the wire — and specifically in a disagreement between two Python libraries about what a single byte means.
 
-The answer lives in how RabbitMQ serializes data on the wire — specifically, how it encodes values in message headers.
-To understand it, we need to look at three things: how AMQP structures data into frames, what message headers actually are, and how values inside those headers get encoded as bytes.
-
-This is going to be technical, so strap in.
+Strap in.
 
 ## AMQP frames
 
-RabbitMQ uses the `AMQP` protocol under the hood for publishing messages, consuming, etc.
+RabbitMQ speaks AMQP — it's the protocol that handles everything from publishing messages to consuming them.
 
-The protocol relies on TCP for consistent byte streaming, but wraps/organizes data in a structure called [frames](https://www.brianstorti.com/speaking-rabbit-amqps-frame-structure/), and each frame
-basically has a type, and a predefined structure that conveys which kind of information it carries.
+AMQP runs over TCP but doesn't just pour raw bytes down the pipe. It wraps everything in [frames](https://www.brianstorti.com/speaking-rabbit-amqps-frame-structure/) — structured envelopes that each carry a type, a channel number, and a payload. The type tells the receiver what kind of data it's looking at.
 
-A frame is the unit of data AMQP sends over TCP — a fixed envelope with a type, channel number, and payload.
-
-The [official protocol specification](https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf) is quite nice and will contain
-all the details to build a more precise understanding of frames.
-
-Brian's article about [AMQP's frame structure](https://www.brianstorti.com/speaking-rabbit-amqps-frame-structure/) is also a nice
-and brief read if you don't want to read an entire technical spec.
+If you want the full picture, the [official protocol spec](https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf) has it all. Brian's article on [AMQP's frame structure](https://www.brianstorti.com/speaking-rabbit-amqps-frame-structure/) is a much quicker read if you'd rather not wade through a technical PDF.
 
 ## The `headers` property
 
-When you publish a message, one of the frames it sends contains what's called "properties" in AMQP lingo, which are metadata about the message, such as the `content-type`, `content-encoding`, etc.
+When you publish a message, one of the frames contains what AMQP calls "properties" — metadata about the message like `content-type`, `content-encoding`, and so on. Think of it as HTTP headers but for your queue.
 
-Just like the `content-type` property, there is also a `headers` property which is basically a hashmap-like data structure, but it's called a `Field Table` in AMQP terms.
-
-So in short: A `Field Table` is a binary encoding of a dictionary.
+One of those properties is `headers`, which lets you attach arbitrary key-value pairs to a message. In AMQP terms, that structure is called a **Field Table** — which is really just a binary encoding of a dictionary.
 
 ## Field table encoding
 
-Understanding how the encoding works is the most critical part in this entire article, so take your time to read and understand
-this in order to make sense of what was going on.
+This is the part that actually matters, so it's worth slowing down here.
 
-Each entry in the field table is defined by 4 things:
-* The key name length: Encoded over 1 byte.
-* The value of the key name: Encoded over N bytes, where N corresponds to the length derived from the previous entry
-* The type tag: The type of the value corresponding to the key being read, encoded over 1 byte
-* The value of the key: Encoded over M bytes, where M is determined based on the type tag itself
+Each entry in a field table is packed as four consecutive pieces:
+* **Key length** — 1 byte telling you how many bytes the key name occupies
+* **Key name** — N bytes (where N came from the previous byte)
+* **Type tag** — 1 byte identifying what kind of value follows
+* **Value** — M bytes, where M is determined entirely by the type tag
 
-AMQP defines a set of named integer types, each mapped to a specific byte width — the type tag tells the reader how many bytes to consume for the value.
+That type tag is the crux of everything. AMQP defines a fixed set of value types — short int, long string, boolean, decimal, etc. — and each one has a single-byte identifier. The decoder reads the tag first, then knows exactly how many bytes to consume for the value.
 
-Section 4.2.1 of the [Spec](https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf) lays out all the type tags and their sizes.
+Section 4.2.1 of the [spec](https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf) lists all of them.
 
 <details>
 <summary>Field table entry Example</summary>
@@ -98,7 +84,7 @@ Let's go over how this gets interpreted, step-by-step:
 
 First, it reads `06`, which tells it that the key of this entry has a length of `6` bytes.
 
-This leads it to reading 6 bytes to determine the value of that key, those 6 bytes being: `61 6D 6F 75 6E 74`.
+This leads it to reading 6 bytes to get the key name, those 6 bytes being: `61 6D 6F 75 6E 74`.
 
 These are the hexadecimal ASCII characters that decode to `amount`.
 
@@ -108,48 +94,46 @@ Type tags are always 1 byte. Here, that byte is `55`.
 
 `55` in hexadecimal corresponds to the ASCII character `U`, which means the value is a `Short Int`.
 
-Short-ints are always encoded over 2 bytes, so AMQP knows that the next 2 bytes will be an encoding of the integer value
-which means `01 2C` are the bytes to read, which evaluate to 300.
+Short Ints are always 2 bytes, so AMQP reads the next 2: `01 2C`, which evaluates to 300.
 
-300 doesn't fit in a `Short Short Int` (1 byte with a max value of 255), so the next type up is a `Short Int`, which uses 2 bytes.
+Why a Short Int and not something smaller? A `Short Short Int` (signed, 1 byte) has a max value of 127. 300 exceeds that, so the next type up is a `Short Int`, which uses 2 bytes.
 </details>
 
 
 ## The discrepancy in codec
 
-In order to transfer messages, we used [Aio Pika](https://docs.aio-pika.com/) to read from the queues, make some
-modifications to the headers, and send it off.
+To transfer the messages, we used [`aio-pika`](https://docs.aio-pika.com/) — read from the source queue, tweak the headers, republish to the destination.
 
-Now, `aiopika` used [pamqp](https://github.com/gmr/pamqp) under the hood for encoding, and `amqp` uses `s` as the type tag
-for 16bit integers.
+`aio-pika` delegates wire encoding to [pamqp](https://github.com/gmr/pamqp), and pamqp uses `s` as the type tag for 16-bit signed integers.
 
-However, `Celery` uses `Kombu` at the transport layer, which in turn uses [py-amqp](https://github.com/celery/py-amqp) for encoding/decoding.
+Celery, on the other hand, uses Kombu at the transport layer, which uses [py-amqp](https://github.com/celery/py-amqp) for encoding and decoding.
 
-The catch is, `py-amqp` interprets the `s` type tag as short string, and that's exactly what messes things up and here's how:
+Here's the problem: **py-amqp treats `s` as a short string, not a short integer.** That single-byte disagreement is where everything falls apart.
 
 Suppose we want to send the following headers over the wire `{"some-key": 300}`, so by the time we'd want to encode the `300` value,
 the following happens:
 
-- `pamqp` sends the following `73 01 2C` byte sequence over the wire, meaning:
-* The type tag is `s`, a 16bit integer, which in hex is `73`
-* Since it's 16 bit, the `300` value is encoded over 2 bytes: `01 2C`
+- `pamqp` sends the following `73 01 2C` byte sequence over the wire:
+  - The type tag byte is `73` (hex), which is the ASCII character `s` — meaning signed 16-bit integer in pamqp's convention
+  - Since it's a 16-bit integer, `300` is encoded over the next 2 bytes: `01 2C`
 
-- `py-amqp` now kicks in and receives the `73 01 2C` byte sequence, meaning: 
-* The type tag is `s`, which means it's a short string
-* Because it's a short string, the first byte means the length of the string which in this case it's `01` = It's a one character string
-* Since it's a one character string, it the value is simply the next byte `2C` is the actual string, and `2C` converts to the `,` character
+- `py-amqp` receives the same `73 01 2C` byte sequence:
+  - The type tag byte is `73`, ASCII character `s` — but in py-amqp's convention, `s` means short string
+  - For a short string, the next byte is the string length: `01` = 1 character
+  - It then reads 1 byte for the content: `2C`, which is the ASCII character `,`
 
-Our case was quite similar, because the headers contained a `timeout` key, whose value was a tuple of 2 16bit integers, who just
-so happen to have `300` as one of the values, which `Celery` `py-amqp` decodes as `,`, and passes it to that `_timed_out` function
-we mentioned at the start, leading to the infamous exception we were running into.
+That's exactly what happened to us. The headers on our messages included a `timelimit` key with the value `[None, 300]` — `None` for the soft timeout, `300` for the hard timeout in seconds.
+
+pamqp encoded `300` with the `s` tag. When py-amqp decoded it, it read `s` as "short string", consumed `\x01` as the length (1 character), then read `\x2c` as the content — which is ASCII for `,`.
+
+So `timeout` became `,`, and Billiard blew up trying to do `float + str`.
 
 ## How we solved this
 
-The fix forward was simply to use `pika` for transferring the messages instead of `aio-pika`, which would ensure the encoding/decoding
-would be consistent.
+We swapped `aio-pika` out for `pika` to do the message transfer. Unlike `aio-pika`, `pika` has its own wire encoder that follows RabbitMQ's convention — it uses the `U` type tag for 16-bit integers, which is exactly what py-amqp expects on the receiving end. Problem solved for new messages.
 
-As for messages that were corrupt, we did the following:
-* Send a `delivery-limit` in RabbitMQ
-* When messages hit that delivery limit, drive those messages to a dead-letter-queue
-* Wrote a script that would read from those DLQs, check the `timeout` header, and fix the value from `[None, ] to `[None 300]`
+The already-corrupt messages in the queues needed a different approach:
+* Set a delivery limit policy in RabbitMQ
+* When messages hit that delivery limit, route them to a dead letter queue
+* Wrote a script to read from those DLQs, check the `timelimit` header, and fix the value from `[None, ',']` to `[None, 300]`
 * Redrive those messages back to the original destination queue

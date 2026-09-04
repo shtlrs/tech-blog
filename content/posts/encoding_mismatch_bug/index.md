@@ -113,3 +113,43 @@ which means `01 2C` are the bytes to read, which evaluate to 300.
 
 300 doesn't fit in a `Short Short Int` (1 byte with a max value of 255), so the next type up is a `Short Int`, which uses 2 bytes.
 </details>
+
+
+## The discrepancy in codec
+
+In order to transfer messages, we used [Aio Pika](https://docs.aio-pika.com/) to read from the queues, make some
+modifications to the headers, and send it off.
+
+Now, `aiopika` used [pamqp](https://github.com/gmr/pamqp) under the hood for encoding, and `amqp` uses `s` as the type tag
+for 16bit integers.
+
+However, `Celery` uses `Kombu` at the transport layer, which in turn uses [py-amqp](https://github.com/celery/py-amqp) for encoding/decoding.
+
+The catch is, `py-amqp` interprets the `s` type tag as short string, and that's exactly what messes things up and here's how:
+
+Suppose we want to send the following headers over the wire `{"some-key": 300}`, so by the time we'd want to encode the `300` value,
+the following happens:
+
+- `pamqp` sends the following `73 01 2C` byte sequence over the wire, meaning:
+* The type tag is `s`, a 16bit integer, which in hex is `73`
+* Since it's 16 bit, the `300` value is encoded over 2 bytes: `01 2C`
+
+- `py-amqp` now kicks in and receives the `73 01 2C` byte sequence, meaning: 
+* The type tag is `s`, which means it's a short string
+* Because it's a short string, the first byte means the length of the string which in this case it's `01` = It's a one character string
+* Since it's a one character string, it the value is simply the next byte `2C` is the actual string, and `2C` converts to the `,` character
+
+Our case was quite similar, because the headers contained a `timeout` key, whose value was a tuple of 2 16bit integers, who just
+so happen to have `300` as one of the values, which `Celery` `py-amqp` decodes as `,`, and passes it to that `_timed_out` function
+we mentioned at the start, leading to the infamous exception we were running into.
+
+## How we solved this
+
+The fix forward was simply to use `pika` for transferring the messages instead of `aio-pika`, which would ensure the encoding/decoding
+would be consistent.
+
+As for messages that were corrupt, we did the following:
+* Send a `delivery-limit` in RabbitMQ
+* When messages hit that delivery limit, drive those messages to a dead-letter-queue
+* Wrote a script that would read from those DLQs, check the `timeout` header, and fix the value from `[None, ] to `[None 300]`
+* Redrive those messages back to the original destination queue

@@ -17,7 +17,7 @@ If you're interested in Python, I highly encourage you to [join us](https://disc
 
 ## What I Write About
 
-I will try to use this space to share some of the technical lessons I ran into on my path, or some thoughts, whenever 
+I will try to use this space to share some of the technical lessons I ran into on my path, or some thoughts, whenever
 I have any.
 
 ## Get In Touch
@@ -30,6 +30,7 @@ I'm always happy to connect further beyond this blog. Feel free to reach out if 
 - Just want to chat about technology!
 
 You can find me on:
+
 - **GitHub**: [@shtlrs](https://github.com/shtlrs)
 - **LinkedIn**: [amrou.bellalouna](https://linkedin.com/in/amrbellalouna)
 - **Python Discord**: Look for me in the community!

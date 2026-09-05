@@ -34,7 +34,7 @@ So I wrote this:
 
 {{< code bash >}}
 
-# in your ~/.zshrc
+### in your ~/.zshrc
 
 s() {
   local f

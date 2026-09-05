@@ -14,7 +14,9 @@ At 8M messages/day with zero downtime tolerance, we needed a migration strategy 
 <!--more-->
 
 ## Prerequisites
+
 This post assumes familiarity with:
+
 - [Celery task queues](https://docs.celeryq.dev/en/stable/getting-started/introduction.html) (workers, tasks, brokers)
 - [RabbitMQ fundamentals](https://www.rabbitmq.com/tutorials/tutorial-one-python.html) (exchanges, queues, routing)
 - [Message queue concepts](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html) (producers, consumers, brokers)
@@ -26,8 +28,8 @@ If you're comfortable with distributed task processing in Python, you're good to
 
 At [Kraken](https://kraken.tech), we use [Celery](https://docs.celeryq.dev/) to offload long-running tasks to workers via [RabbitMQ](https://www.rabbitmq.com/) (v3.13.7.1). Our platform team needed to upgrade to RabbitMQ v4.2.2, which introduces breaking changes:
 
-* [Global QoS removal](https://www.rabbitmq.com/blog/2021/08/21/4.0-deprecation-announcements#removal-of-global-qos) - ETA/countdown tasks now [block workers until execution time](https://docs.celeryq.dev/en/v5.6.0/getting-started/backends-and-brokers/rabbitmq.html#limitations)
-* [Classic Queue Mirroring removal](https://www.rabbitmq.com/blog/2021/08/21/4.0-deprecation-announcements#removal-of-classic-queue-mirroring) - forced migration to [Quorum Queues](https://www.rabbitmq.com/docs/quorum-queues)
+- [Global QoS removal](https://www.rabbitmq.com/blog/2021/08/21/4.0-deprecation-announcements#removal-of-global-qos) - ETA/countdown tasks now [block workers until execution time](https://docs.celeryq.dev/en/v5.6.0/getting-started/backends-and-brokers/rabbitmq.html#limitations)
+- [Classic Queue Mirroring removal](https://www.rabbitmq.com/blog/2021/08/21/4.0-deprecation-announcements#removal-of-classic-queue-mirroring) - forced migration to [Quorum Queues](https://www.rabbitmq.com/docs/quorum-queues)
 
 ## Challenges
 
@@ -83,7 +85,7 @@ Instead, we had to transform messages during transfer. The idea was to replicate
 Here's the core logic (simplified for clarity):
 
 {{< code python >}}
-import pika  # RabbitMQ Python client: https://pika.readthedocs.io/
+import pika  # RabbitMQ Python client: <https://pika.readthedocs.io/>
 from kombu.transport import native_delayed_delivery as kombu_utils
 
 def get_routing_details(method, properties, queue_name):
@@ -115,12 +117,11 @@ for method, properties, body in source_channel.consume("target_queue"):
         source_conn.channel().basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 {{< /code >}}
 
+#### Some notes on the shoveling part
 
-#### Some notes on the shoveling part:
-* The above is pseudocode to illustrate the concept. Our production version uses [`aio_pika`](https://aio-pika.readthedocs.io/) for [async I/O](https://docs.python.org/3/library/asyncio.html) (to avoid blocking), [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) to handle high throughput, message backups for disaster recovery, and extensive logging to track everything.
-* The script was deployed to run as a daemon, and would only work if `USE_QUORUM_QUEUES` was set to `True`.
-* More mechanics were in place to determine if there were any messages to transfer in the first place, do transfers in batches, etc.
-
+- The above is pseudocode to illustrate the concept. Our production version uses [`aio_pika`](https://aio-pika.readthedocs.io/) for [async I/O](https://docs.python.org/3/library/asyncio.html) (to avoid blocking), [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) to handle high throughput, message backups for disaster recovery, and extensive logging to track everything.
+- The script was deployed to run as a daemon, and would only work if `USE_QUORUM_QUEUES` was set to `True`.
+- More mechanics were in place to determine if there were any messages to transfer in the first place, do transfers in batches, etc.
 
 ### Phase 4 & 5: Cleanup and Upgrade
 

@@ -15,6 +15,15 @@ defaults:
   run:
     shell: bash
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Lint markdown
+        run: |
+          npx --yes markdownlint-cli2 "content/**/*.md"
+
   build:
     runs-on: ubuntu-latest
     env:
@@ -90,6 +99,10 @@ jobs:
         with:
           path: ${{ runner.temp }}/hugo_cache
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+      - name: Check internal links
+        run: |
+          curl -sSfL https://htmltest.wjdp.uk | bash -s -- -b bin
+          bin/htmltest --skip-external public/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

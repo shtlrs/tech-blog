@@ -27,7 +27,7 @@ if monotonic() >= start + timeout:
     ...
 ```
 
-`start` was a perfectly valid float. `timeout`, on the other hand, was `,`. Just a comma at which we kept on staring at that for a while.
+`start` was a perfectly valid float. `timeout`, on the other hand, was `,`. Just a comma, when it was supposed to be a float/int as well.
 
 <details>
 <summary>Sentry Snippet</summary>
@@ -108,7 +108,7 @@ To transfer the messages, we used [`aio-pika`](https://docs.aio-pika.com/) — r
 
 Celery, on the other hand, uses Kombu at the transport layer, which uses [py-amqp](https://github.com/celery/py-amqp) for encoding and decoding.
 
-Here's the problem: **py-amqp treats `s` as a short string, not a short integer.** That single-byte disagreement is where everything falls apart.
+Here's the problem: pamqp and py-amqp disagree on what the `s` type tag means. That single-byte disagreement is where everything falls apart.
 
 Suppose we want to send the following headers over the wire `{"some-key": 300}`, so by the time we'd want to encode the `300` value,
 the following happens:
@@ -128,12 +128,47 @@ pamqp encoded `300` with the `s` tag. When py-amqp decoded it, it read `s` as "s
 
 So `timeout` became `,`, and Billiard blew up trying to do `float + str`.
 
+## Why does this discrepancy exist?
+
+The obvious question is: who's doing it wrong?
+
+The answer is frustratingly: it depends on which spec you follow, and the specs contradict each other.
+
+AMQP 0-9-1 introduced a set of field table type tags, but RabbitMQ (and Qpid before it) had already shipped their own extensions using the same byte values with different meanings. The two conventions conflict.
+
+The [RabbitMQ errata page](https://www.rabbitmq.com/amqp-0-9-1-errata.html) documents this conflict explicitly. Here's the relevant part of the type tag table:
+
+| Tag | 0-9-1 spec | Qpid / RabbitMQ |
+|-----|------------|-----------------|
+| `s` | short string | signed 16-bit |
+| `U` | signed 16-bit | — |
+| `S` | long string | long string |
+
+Worth noting: the original 0-9 spec didn't define `s` or `U` at all — it only had `S`, `I`, `D`, `T`, `F`, `V`. Both tags were introduced in 0-9-1, but Qpid and RabbitMQ were already shipping their own extensions that reused the same byte values differently.
+
+The errata puts it plainly:
+
+> In Qpid and Rabbit, `s` means a signed 16-bit integer; in 0-9-1, it means a short string.
+
+And then:
+
+> **RabbitMQ continues to use the tags in the third column.**
+
+So RabbitMQ's broker uses `s` for signed 16-bit. **pamqp deliberately follows this** — its v1.5.0 [changelog](https://gmr.github.io/pamqp/changelog/#150-2014-11-05) explicitly says it aligned field table type indicators to the RabbitMQ protocol errata. py-amqp went the other way and follows the 0-9-1 spec — `s` = short string, `U` = signed 16-bit — with no mention of the conflict anywhere in its codebase.
+
+Neither library is being reckless. They each picked a side of a genuine spec conflict. The problem is they disagree on the one tag that affected our `timelimit` value, and the disagreement produces no error — just silently wrong data.
+
 ## How we solved this
 
-We swapped `aio-pika` out for `pika` to do the message transfer. Unlike `aio-pika`, `pika` has its own wire encoder that follows RabbitMQ's convention — it uses the `U` type tag for 16-bit integers, which is exactly what py-amqp expects on the receiving end. Problem solved for new messages.
+We swapped `aio-pika` out for `pika` to do the message transfer. `pika` has its own wire encoder and uses the `U` type tag for 16-bit integers — the same convention py-amqp expects on the receiving end, so the two sides finally agreed. Problem solved for new messages.
 
 The already-corrupt messages in the queues needed a different approach:
 * Set a delivery limit policy in RabbitMQ
 * When messages hit that delivery limit, route them to a dead letter queue
 * Wrote a script to read from those DLQs, check the `timelimit` header, and fix the value from `[None, ',']` to `[None, 300]`
 * Redrive those messages back to the original destination queue
+
+---
+
+I guess the real lesson here isn't "don't use aio-pika" — it's that AMQP's fragmented spec history means two fully compliant-looking libraries can silently disagree at the byte level.
+If you're ever mixing libraries across the publish/consume boundary, verify they share the same type tag conventions before you find out the hard way.

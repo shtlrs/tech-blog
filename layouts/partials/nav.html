@@ -1,23 +1,136 @@
-<nav class="navbar" style="border-bottom: 1px solid #e0e0e0; padding: 1rem 0; margin-bottom: 2rem; text-align: center;">
-  <div class="nav" style="display: flex; justify-content: center; align-items: center; position: relative;">
-    <a href="{{ .Site.BaseURL }}" {{ if .IsHome }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">Home</a>
-    <span style="color: #999; padding: 0 0.5rem;">|</span>
+<style>
+  .nav-bar { display: flex; align-items: center; justify-content: center; position: relative; padding: 0 3rem; }
+  .nav-links { display: flex; align-items: center; flex-wrap: nowrap; }
+  .nav-sep { color: #999; padding: 0 0.5rem; }
+  .nav-hamburger { display: none !important; }
+
+  /* Drawer */
+  .nav-drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 80vw;
+    max-width: 360px;
+    background: var(--body-bg-color, #fafafa);
+    color: var(--body-color, #111);
+    border-left: 2px solid rgba(128,128,128,0.2);
+    box-shadow: -4px 0 32px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    z-index: 2000;
+    transform: translateX(110%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .nav-drawer.open { transform: translateX(0); }
+
+  .nav-drawer-close {
+    position: sticky;
+    top: 0;
+    align-self: flex-end;
+    margin: 1rem 1rem 0;
+    background: #c33 !important;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff !important;
+    padding: 0.4rem 0.9rem;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+  .nav-drawer-close:hover { background: #a22 !important; }
+
+  .nav-drawer-links {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+  }
+  .nav-drawer-links a {
+    text-decoration: none;
+    color: var(--body-color, #111);
+    font-weight: 500;
+    font-size: 1.1rem;
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid rgba(128,128,128,0.12);
+  }
+  .nav-drawer-links a:last-child { border-bottom: none; }
+  .nav-drawer-links a.subscribe-link { color: #c33; font-weight: 700; }
+  .nav-drawer-links a:hover { opacity: 0.7; }
+
+  /* Overlay */
+  .nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1999;
+  }
+  .nav-overlay.open { display: block; }
+
+  @media (max-width: 900px) {
+    .nav-hamburger { display: block !important; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; color: inherit; line-height: 1; }
+    .nav-bar { justify-content: space-between; padding: 0 1rem; }
+    .nav-links { display: none !important; }
+    #theme-toggle { position: static !important; }
+  }
+</style>
+
+<!-- Overlay -->
+<div class="nav-overlay" id="nav-overlay" onclick="closeNav()"></div>
+
+<!-- Drawer -->
+<div class="nav-drawer" id="nav-drawer">
+  <button class="nav-drawer-close" onclick="closeNav()" aria-label="Close">✕ Close</button>
+  <div class="nav-drawer-links">
+    <a href="{{ .Site.BaseURL }}">Home</a>
     {{ if .Site.Menus.main }}
-    {{ range $index, $item := .Site.Menus.main }}
-      {{ if gt $index 0 }}
-        <span style="color: #999; padding: 0 0.5rem;">|</span>
-      {{ end }}
-      <a href="{{ .URL }}" {{ if or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">{{ .Name }}</a>
+    {{ range .Site.Menus.main }}
+    <a href="{{ .URL }}">{{ .Name }}</a>
     {{ end }}
     {{ end }}
     {{ if .Site.Params.kitFormUrl }}
-    <span style="color: #999; padding: 0 0.5rem;">|</span>
-    <a href="#subscribe" onclick="showSubscribe(event)" style="text-decoration: none; color: #c33; font-weight: 600; padding: 0.25rem 0.75rem;">Subscribe</a>
+    <a href="#subscribe" class="subscribe-link" onclick="closeNav()">Subscribe</a>
     {{ end }}
+  </div>
+</div>
 
-    <button id="theme-toggle" aria-label="Toggle dark mode" style="position: absolute; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem 0.5rem; transition: opacity 0.2s;">
+<!-- Nav bar -->
+<nav class="navbar" style="border-bottom: 1px solid #e0e0e0; padding: 1rem 0; margin-bottom: 2rem;">
+  <div class="nav-bar">
+
+    <button class="nav-hamburger" aria-label="Open menu" onclick="openNav()">☰</button>
+
+    <div class="nav-links">
+      <a href="{{ .Site.BaseURL }}" {{ if .IsHome }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">Home</a>
+      {{ if .Site.Menus.main }}
+      {{ range $index, $item := .Site.Menus.main }}
+        <span class="nav-sep">|</span>
+        <a href="{{ .URL }}" {{ if or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">{{ .Name }}</a>
+      {{ end }}
+      {{ end }}
+      {{ if .Site.Params.kitFormUrl }}
+      <span class="nav-sep">|</span>
+      <a href="#subscribe" onclick="showSubscribe(event)" style="text-decoration: none; color: #c33; font-weight: 600; padding: 0.25rem 0.75rem;">Subscribe</a>
+      {{ end }}
+    </div>
+
+    <button id="theme-toggle" aria-label="Toggle dark mode" style="position: absolute; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem 0.5rem;">
       <span id="theme-toggle-light-icon" style="display: none;">☀️</span>
       <span id="theme-toggle-dark-icon" style="display: none;">🌙</span>
     </button>
+
   </div>
 </nav>
+
+<script>
+  window.openNav = function() {
+    document.getElementById('nav-drawer').classList.add('open');
+    document.getElementById('nav-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeNav = function() {
+    document.getElementById('nav-drawer').classList.remove('open');
+    document.getElementById('nav-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+</script>

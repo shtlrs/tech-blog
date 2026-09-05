@@ -72,9 +72,11 @@ Section 4.2.1 of the [spec](https://www.rabbitmq.com/resources/specs/amqp0-9-1.p
 <summary>Field table entry Example</summary>
 The best way to make sense out of this is via an example.
 
-Let's suppose we want to send the following headers dict `{"amount": 300}`
+Let's suppose we want to send `{"amount": 300}` as the `headers` property.
 
-The entry would look something like this
+In AMQP, the dictionary itself is called a field-table, and each key-value pair inside it is a field-value pair.
+
+So for the `amount=300` field-value pair, the byte sequence in the frame is:
 
 ```text
 06 61 6D 6F 75 6E 74 55 01 2C

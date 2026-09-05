@@ -36,6 +36,8 @@
       {{ end }}
     </article>
 
+    {{ partial "subscribe.html" . }}
+
     {{ if and (gt .WordCount 400) (.Param "backtotop") }}
       {{ partial "backtotop.html" . }}
       <button onclick="topFunction()" id="backtotopButton">

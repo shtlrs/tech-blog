@@ -8,6 +8,7 @@ enableRobotsTXT = true
 customCSS = ["css/styles.css"]
 opengraph = true
 description = "Software Engineering blog by Amrou Bellalouna. Insights on solving day to day engineering problems."
+kitFormUrl = "https://app.kit.com/forms/9885985/subscriptions"
 
 
 [social]

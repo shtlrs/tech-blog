@@ -10,6 +10,10 @@
       <a href="{{ .URL }}" {{ if or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }}class="active"{{ end }} style="text-decoration: none; color: inherit; font-weight: 500; padding: 0.25rem 0.75rem;">{{ .Name }}</a>
     {{ end }}
     {{ end }}
+    {{ if .Site.Params.kitFormUrl }}
+    <span style="color: #999; padding: 0 0.5rem;">|</span>
+    <a href="#subscribe" onclick="showSubscribe(event)" style="text-decoration: none; color: #c33; font-weight: 600; padding: 0.25rem 0.75rem;">Subscribe</a>
+    {{ end }}
 
     <button id="theme-toggle" aria-label="Toggle dark mode" style="position: absolute; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.25rem 0.5rem; transition: opacity 0.2s;">
       <span id="theme-toggle-light-icon" style="display: none;">☀️</span>

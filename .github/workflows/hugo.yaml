@@ -138,7 +138,7 @@ jobs:
           fi
 
           # Detect newly added post file in this commit
-          NEW_POST=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'content/posts/' | grep '\.md$' | grep -v '_index' | head -1)
+          NEW_POST=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'content/posts/' | grep '\.md$' | grep -v '_index' | head -1 || true)
           [ -z "$NEW_POST" ] && echo "No new post, skipping" && exit 0
 
           # Derive slug from file path; script gets title + URL from RSS

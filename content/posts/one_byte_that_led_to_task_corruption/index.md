@@ -1,7 +1,7 @@
 +++
 date = '2026-09-04T15:25:56+01:00'
 draft = false
-title = 'How encoding mismatches silently corrupted our Celery tasks'
+title = 'How one single byte lead to silent Celery task corruption'
 tags = ['RabbitMQ', 'Celery', 'Python', 'DevOps', 'Message Queues', "Encoding"]
 categories = ['Backend', 'Infrastructure']
 +++

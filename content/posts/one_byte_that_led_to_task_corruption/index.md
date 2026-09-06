@@ -59,6 +59,7 @@ One of those properties is `headers`, which lets you attach arbitrary key-value 
 This is the part that actually matters, so it's worth slowing down here.
 
 Each entry in a field table is packed as four consecutive pieces:
+
 * **Key length** — 1 byte telling you how many bytes the key name occupies
 * **Key name** — N bytes (where N came from the previous byte)
 * **Type tag** — 1 byte identifying what kind of value follows
@@ -106,7 +107,6 @@ Here's an animation of how the decoding happens:
 ![Decoding](amqp_bytes.gif)
 </details>
 
-
 ## The discrepancy in codec
 
 To transfer the messages, we used [`aio-pika`](https://docs.aio-pika.com/) — read from the source queue, tweak the headers, republish to the destination.
@@ -120,14 +120,14 @@ Here's the problem: pamqp and py-amqp disagree on what the `s` type tag means. T
 Suppose we want to send the following headers over the wire `{"some-key": 300}`, so by the time we'd want to encode the `300` value,
 the following happens:
 
-- `pamqp` sends the following `73 01 2C` byte sequence over the wire:
-  - The type tag byte is `73` (hex), which is the ASCII character `s` — meaning signed 16-bit integer in pamqp's convention
-  - Since it's a 16-bit integer, `300` is encoded over the next 2 bytes: `01 2C`
+* `pamqp` sends the following `73 01 2C` byte sequence over the wire:
+  * The type tag byte is `73` (hex), which is the ASCII character `s` — meaning signed 16-bit integer in pamqp's convention
+  * Since it's a 16-bit integer, `300` is encoded over the next 2 bytes: `01 2C`
 
-- `py-amqp` receives the same `73 01 2C` byte sequence:
-  - The type tag byte is `73`, ASCII character `s` — but in py-amqp's convention, `s` means short string
-  - For a short string, the next byte is the string length: `01` = 1 character
-  - It then reads 1 byte for the content: `2C`, which is the ASCII character `,`
+* `py-amqp` receives the same `73 01 2C` byte sequence:
+  * The type tag byte is `73`, ASCII character `s` — but in py-amqp's convention, `s` means short string
+  * For a short string, the next byte is the string length: `01` = 1 character
+  * It then reads 1 byte for the content: `2C`, which is the ASCII character `,`
 
 That's exactly what happened to us. The headers on our messages included a `timelimit` key with the value `[None, 300]` — `None` for the soft timeout, `300` for the hard timeout in seconds.
 
@@ -145,11 +145,11 @@ AMQP 0-9-1 introduced a set of field table type tags, but RabbitMQ (and Qpid bef
 
 The [RabbitMQ errata page](https://www.rabbitmq.com/amqp-0-9-1-errata.html) documents this conflict explicitly. Here's the relevant part of the type tag table:
 
-| Tag | 0-9-1 spec | Qpid / RabbitMQ |
-|-----|------------|-----------------|
-| `s` | short string | signed 16-bit |
-| `U` | signed 16-bit | — |
-| `S` | long string | long string |
+| Tag | 0-9-1 spec    | Qpid / RabbitMQ |
+|-----|---------------|-----------------|
+| `s` | short string  | signed 16-bit   |
+| `U` | signed 16-bit | —               |
+| `S` | long string   | long string     |
 
 Worth noting: the original 0-9 spec didn't define `s` or `U` at all — it only had `S`, `I`, `D`, `T`, `F`, `V`. Both tags were introduced in 0-9-1, but Qpid and RabbitMQ were already shipping their own extensions that reused the same byte values differently.
 
@@ -170,6 +170,7 @@ Neither library is being reckless. They each picked a side of a genuine spec con
 We swapped `aio-pika` out for `pika` to do the message transfer. `pika` has its own wire encoder and uses the `U` type tag for 16-bit integers — the same convention py-amqp expects on the receiving end, so the two sides finally agreed. Problem solved for new messages.
 
 The already-corrupt messages in the queues needed a different approach:
+
 * Set a delivery limit policy in RabbitMQ
 * When messages hit that delivery limit, route them to a dead letter queue
 * Wrote a script to read from those DLQs, check the `timelimit` header, and fix the value from `[None, ',']` to `[None, 300]`

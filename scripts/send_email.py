@@ -27,7 +27,7 @@ INLINE_STYLES = [
     (r'<ol(?= |>)',         '<ol style="margin:16px 0;padding-left:1.5em;font-family:sans-serif;"'),
     (r'<li(?= |>)',         '<li style="margin:8px 0;font-size:16px;line-height:24px;color:#111;"'),
     (r'<blockquote(?= |>)', '<blockquote style="margin:16px 0;padding:16px 20px;background:#f5f5f5;border-radius:6px;color:#555;font-family:sans-serif;"'),
-    (r'<pre(?= |>)',        '<pre style="background:#272822;color:#f8f8f2;padding:1em;border-radius:4px;font-size:14px;line-height:20px;overflow-x:auto;white-space:pre-wrap;"'),
+    (r'<pre(?= |>)',        '<pre style="background:#f5f5f5;color:#333;padding:1em;border-radius:4px;font-size:14px;line-height:20px;overflow-x:auto;white-space:pre-wrap;"'),
     (r'<a href',            '<a style="color:#0069ff;text-decoration:underline;" href'),
     (r'<hr(?= |>|/)',       '<hr style="border:none;border-top:2px solid #eaeaea;max-width:300px;margin:32px auto;"'),
     (r'<img(?= |>)',        '<img style="max-width:100%;display:block;margin:16px 0;"'),
@@ -97,7 +97,14 @@ def send_broadcast(title: str, post_content: str, kit_api_key: str):
 
 
 if __name__ == '__main__':
-    slug, api_key = sys.argv[1], sys.argv[2]
+    preview = '--preview' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--preview']
+
+    if preview:
+        slug = args[0]
+        api_key = None
+    else:
+        slug, api_key = args[0], args[1]
 
     post = find_post(slug)
     if not post:
@@ -106,4 +113,12 @@ if __name__ == '__main__':
 
     html = apply_inline_styles(post['html'])
     content = build_email(post['url'], post['title'], html)
-    send_broadcast(post['title'], content, api_key)
+
+    if preview:
+        out = '/tmp/email_preview.html'
+        with open(out, 'w') as f:
+            f.write(content)
+        print(f'Preview saved to {out}')
+        print('Open with: open /tmp/email_preview.html')
+    else:
+        send_broadcast(post['title'], content, api_key)

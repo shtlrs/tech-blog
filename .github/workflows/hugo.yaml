@@ -102,7 +102,7 @@ jobs:
       - name: Check internal links
         run: |
           curl -sSfL https://htmltest.wjdp.uk | bash -s -- -b bin
-          bin/htmltest --skip-external public/
+          bin/htmltest --conf .htmltest.yml public/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

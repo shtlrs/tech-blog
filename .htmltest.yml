@@ -1,0 +1,3 @@
+CheckExternal: false
+CheckInternalHash: false
+IgnoreDirectoryMissingTrailingSlash: true

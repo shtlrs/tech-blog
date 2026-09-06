@@ -64,13 +64,14 @@ def apply_inline_styles(html):
 
 
 def build_email(post_url, title, body_html):
+    tracked_url = post_url.rstrip('/') + '/?ref=email'
     return f"""
 <div style="max-width:600px;margin:0 auto;padding:20px;background:#ffffff;font-family:sans-serif;">
   <p style="margin:0 0 24px;font-size:13px;color:#666;">
-    <a href="{post_url}" style="color:#0069ff;text-decoration:underline;">Read it on shtlrs.com</a>
+    <a href="{tracked_url}" style="color:#0069ff;text-decoration:underline;">Read it on shtlrs.com</a>
   </p>
   <h1 style="font-size:26px;font-weight:900;line-height:30px;margin:0 0 8px;color:#111;">
-    <a href="{post_url}" style="color:inherit;text-decoration:none;">{title}</a>
+    <a href="{tracked_url}" style="color:inherit;text-decoration:none;">{title}</a>
   </h1>
   <p style="margin:0 0 32px;font-size:12px;color:#737373;text-transform:uppercase;letter-spacing:0.05em;">Amrou Bellalouna</p>
   <hr style="border:none;border-top:1px solid #eaeaea;margin:0 0 24px;">

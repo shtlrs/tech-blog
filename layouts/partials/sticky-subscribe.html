@@ -39,6 +39,16 @@
 </div>
 
 <script>
+  (function() {
+    if (new URLSearchParams(window.location.search).get('ref') === 'email') {
+      sessionStorage.setItem('from_email', '1');
+    }
+    if (sessionStorage.getItem('from_email')) {
+      var el = document.getElementById('sticky-subscribe');
+      if (el) el.style.display = 'none';
+    }
+  })();
+
   function dismissSticky() {
     document.getElementById('sticky-subscribe').style.display = 'none';
   }

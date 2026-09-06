@@ -68,6 +68,7 @@ That type tag is the crux of everything. AMQP defines a fixed set of value types
 
 Section 4.2.1 of the [spec](https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf) lists all of them.
 
+If you want more details of how the decoding happens, you can dive into the following section:
 <details>
 <summary>Field table entry Example</summary>
 The best way to make sense out of this is via an example.
@@ -99,6 +100,10 @@ Type tags are always 1 byte. Here, that byte is `55`.
 Short Ints are always 2 bytes, so AMQP reads the next 2: `01 2C`, which evaluates to 300.
 
 Why a Short Int and not something smaller? A `Short Short Int` (signed, 1 byte) has a max value of 127. 300 exceeds that, so the next type up is a `Short Int`, which uses 2 bytes.
+
+Here's an animation of how the decoding happens:
+
+![Decoding](amqp_bytes.gif)
 </details>
 
 

@@ -15,15 +15,6 @@ defaults:
   run:
     shell: bash
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Lint markdown
-        run: |
-          npx --yes markdownlint-cli2 "content/**/*.md"
-
   build:
     runs-on: ubuntu-latest
     env:

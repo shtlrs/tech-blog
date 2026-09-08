@@ -10,7 +10,7 @@
     </div>
     <p><a href="/posts">View all posts →</a></p>
     {{ else }}
-    <!-- Regular list page -->
+    {{ .Content }}
     <div class="posts-list">
         {{ range .Pages.ByDate.Reverse }}
         {{ partial "preview.html" . }}

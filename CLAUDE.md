@@ -8,7 +8,8 @@ This file gives Claude context about this project. Update it when important deci
 
 Hugo static site deployed to GitHub Pages. Theme: HugoTeX. Source at `/Users/shtlrs/dev/tech-blog`. Live at `https://shtlrs.com`.
 
-Posts live in `content/posts/`. Each post is either a single `index.md` inside a named folder (bundle, supports local images) or a standalone `.md` file.
+Posts live in `content/posts/`. Each post is either a single `index.md` inside a named folder (bundle, supports local images), a standalone `.md` file, or
+in the case of a series there will be `contents/posts/slug/_index.md` and `contents/post/slug/part-1.md` (and as many parts to that series)
 
 Frontmatter is TOML (`+++` delimiters), not YAML.
 

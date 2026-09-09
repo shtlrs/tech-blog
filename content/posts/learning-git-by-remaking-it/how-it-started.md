@@ -1,5 +1,5 @@
 +++
-date = '2026-09-08T18:15:56+01:00'
+date = '2026-09-08T18:13:56+01:00'
 draft = false
 title = 'Learning git by writing it from scratch, kinda.'
 tags = ['Terminal', 'Git', 'Version Control']

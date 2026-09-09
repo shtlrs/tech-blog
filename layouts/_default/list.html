@@ -12,7 +12,7 @@
     {{ else }}
     {{ .Content }}
     <div class="posts-list">
-        {{ range .Pages.ByDate.Reverse }}
+        {{ range (where site.RegularPages "Section" "posts").ByDate.Reverse }}
         {{ partial "preview.html" . }}
         {{ end }}
     </div>

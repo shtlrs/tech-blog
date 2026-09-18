@@ -1,5 +1,5 @@
 +++
-date = '2026-09-08T18:15:56+01:00'
+date = '2026-09-08T18:13:56+01:00'
 draft = false
 title = 'Learning git by writing it from scratch, kinda.'
 tags = ['Terminal', 'Git', 'Version Control']
@@ -45,4 +45,6 @@ thought it'd be a good idea to give back and share what I learned in my own word
 ## Lesson series
 
 In order to not make this into a long and tiring-to-read post, I will be making a small series out of the things I have learned of my recent
-experiment, that I will be listing here as I add them, so stay tuned.
+experiment, that you can follow by reading the following articles in order:
+
+* [Part 1: Inside git's object database]({{< relref "inside-git-object-storage" >}})

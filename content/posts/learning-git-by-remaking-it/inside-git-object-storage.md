@@ -338,3 +338,10 @@ def read_object(sha_hash: str, path_to_git_directory: str) -> AbstractGitObject:
     
     return target_class(content)
 ```
+
+---
+
+As you might have noticed, both the `serialize` and `deserialize` methods were left unimplemented in this article.
+That has been done on purpose because each one plays a fundamental role in writing and reading a `git` object.
+
+We'll explore the different implementations based on the object types in later parts of the `git` series

@@ -48,3 +48,4 @@ In order to not make this into a long and tiring-to-read post, I will be making 
 experiment, that you can follow by reading the following articles in order:
 
 * [Part 1: Inside git's object database]({{< relref "inside-git-object-storage" >}})
+* [Part 2: How git distributes files across "random" directories]({{< relref "git-directory-splitting" >}})

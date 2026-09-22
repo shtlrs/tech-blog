@@ -148,8 +148,8 @@ compressed_content: bytes = zlib.compress(git_object_file_content)
 
 Now that we have the `sha1` hash and the compressed content, `git` uses those 2 components to write it on disk
 
-> Note: `git` uses the first 2 characters of the `sha` as the folder where it will write the data, we will discuss this more
-> in detail in another post
+> Note: `git` uses the first 2 characters of the `sha` as the folder where it will write the data, the reason behind
+> this pattern is explained in [a separate post]({{< relref "git-directory-splitting" >}})
 
 ```python
 
